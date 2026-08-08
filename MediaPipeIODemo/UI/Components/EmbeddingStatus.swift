@@ -1,0 +1,35 @@
+import SwiftUI
+
+/// Snapshot of an in-flight (re-)embedding run — `itemsPerSecond` is the running average since it started.
+struct EmbeddingProgress: Equatable {
+    let done: Int
+    let total: Int
+    let itemsPerSecond: Double
+}
+
+/// Small filled/outline dot used on list rows and message bubbles to mark embedded vs
+/// not-yet-embedded content.
+struct EmbeddingStatusIcon: View {
+    let isIndexed: Bool
+
+    var body: some View {
+        Image(systemName: isIndexed ? "checkmark.circle.fill" : "circle")
+            .foregroundStyle(isIndexed ? Color.accentColor : Color.secondary.opacity(0.4))
+            .font(.system(size: 15))
+            .accessibilityLabel(isIndexed ? "Embedded" : "Not embedded yet")
+    }
+}
+
+/// Progress bar + "N/M (X.X items/sec)" readout for an active re-embed run.
+struct EmbeddingProgressView: View {
+    let progress: EmbeddingProgress
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            ProgressView(value: progress.total > 0 ? Double(progress.done) / Double(progress.total) : 0)
+            Text("Embedding… \(progress.done)/\(progress.total) (\(String(format: "%.1f", progress.itemsPerSecond)) items/sec)")
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+        }
+    }
+}

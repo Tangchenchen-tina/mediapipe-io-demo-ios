@@ -1,0 +1,18 @@
+# Xcode
+DerivedData/
+*.xcuserstate
+xcuserdata/
+*.xcscmblueprint
+
+# xcodegen generates this from project.yml — regenerate with `xcodegen generate`
+MediaPipeIODemo.xcodeproj/
+
+# CocoaPods — regenerate with `pod install` (Podfile.lock IS tracked, for reproducible installs)
+Pods/
+*.xcworkspace
+
+# Downloaded at build time by RunScripts/download_models.sh — hundreds of MB, never commit these.
+MediaPipeIODemo/Resources/Models/*.litertlm
+MediaPipeIODemo/Resources/Models/*.task
+
+.DS_Store
