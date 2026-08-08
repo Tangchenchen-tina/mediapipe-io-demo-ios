@@ -1,4 +1,5 @@
 import Foundation
+import SwiftUI
 
 /// A minimal word-level diff (classic LCS dynamic-programming table) between an original and a
 /// corrected string, used to render the Proofreader's "view diff" — struck-through removals,
@@ -93,4 +94,19 @@ private func mergeAdjacent(_ segments: [DiffSegment]) -> [DiffSegment] {
         }
     }
     return merged
+}
+
+/// Renders a diff as a single `Text` — struck-through red for removals, green for additions —
+/// for inline display (e.g. directly in place of an email's body once it's been proofread).
+func diffText(original: String, corrected: String) -> Text {
+    computeWordDiff(original: original, corrected: corrected).reduce(Text("")) { acc, segment in
+        switch segment {
+        case .unchanged(let text):
+            return acc + Text(text)
+        case .removed(let text):
+            return acc + Text(text).strikethrough().foregroundColor(.red)
+        case .added(let text):
+            return acc + Text(text).foregroundColor(.green)
+        }
+    }
 }

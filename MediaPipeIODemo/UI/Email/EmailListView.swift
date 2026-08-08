@@ -1,7 +1,12 @@
 import SwiftData
 import SwiftUI
 
-private let emailSuggestions = ["campaign launch delay", "High CPU usage monitoring alert"]
+// Grounded in what's actually in the 5 seeded emails, not a generic/mismatched placeholder.
+private let emailSuggestions = [
+    "architecture review schedule",
+    "compliance training deadline",
+    "marketing campaign launch date",
+]
 
 struct EmailListView: View {
     @State private var viewModel: EmailListViewModel
@@ -25,6 +30,15 @@ struct EmailListView: View {
                     results: viewModel.searchResults,
                     onSearch: { viewModel.search($0) },
                     onResultClick: { path.append($0.id) }
+                )
+                .listRowSeparator(.hidden)
+
+                EmbeddingStatusBar(
+                    itemLabel: "emails",
+                    embeddedCount: viewModel.indexedEmailIds.count,
+                    totalCount: emails.count,
+                    progress: viewModel.reembedProgress,
+                    onReembedAll: { viewModel.reembedAll() }
                 )
                 .listRowSeparator(.hidden)
 

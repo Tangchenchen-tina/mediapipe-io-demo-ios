@@ -22,6 +22,8 @@
 	<string>1</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
+	<key>NSCameraUsageDescription</key>
+	<string>Camera access is used to take a photo to turn into a sticker.</string>
 	<key>UILaunchScreen</key>
 	<dict>
 		<key>UIColorName</key>

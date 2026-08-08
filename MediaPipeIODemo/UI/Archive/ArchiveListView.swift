@@ -2,7 +2,12 @@ import SwiftData
 import SwiftUI
 import UniformTypeIdentifiers
 
-private let archiveSuggestions = ["Applications of sequence learning in pointer networks"]
+// Grounded in the 4 actual bundled documents, not a stale placeholder from a removed seed doc.
+private let archiveSuggestions = [
+    "multi-head self-attention mechanism",
+    "pipeline parallelism giant model training",
+    "multi-agent prompt topology optimization",
+]
 private let gridColumns = [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)]
 
 struct ArchiveListView: View {
@@ -29,6 +34,14 @@ struct ArchiveListView: View {
                         results: viewModel.searchResults,
                         onSearch: { viewModel.search($0) },
                         onResultClick: { path.append($0.id) }
+                    )
+
+                    EmbeddingStatusBar(
+                        itemLabel: "documents",
+                        embeddedCount: viewModel.indexedDocumentIds.count,
+                        totalCount: documents.count,
+                        progress: viewModel.reembedProgress,
+                        onReembedAll: { viewModel.reembedAll() }
                     )
 
                     LazyVGrid(columns: gridColumns, spacing: 16) {

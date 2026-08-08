@@ -13,6 +13,9 @@ struct RootTabView: View {
 
             EmailListView(container: container)
                 .tabItem { Label("Email", systemImage: "envelope.fill") }
+
+            StickerListView(container: container)
+                .tabItem { Label("Stickers", systemImage: "face.smiling.fill") }
         }
     }
 }

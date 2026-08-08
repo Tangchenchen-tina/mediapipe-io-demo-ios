@@ -32,6 +32,12 @@ final class DemoDataSeeder {
         await indexEverything()
     }
 
+    /// Per-thread search suggestion chips, tailored to that thread's actual seeded content —
+    /// used by `ChatThreadView`'s local search bar.
+    static func chatSearchSuggestions(forThreadId threadId: String) -> [String] {
+        sampleChats.first(where: { $0.id == threadId })?.suggestions ?? []
+    }
+
     private func seedChats() {
         for chat in Self.sampleChats {
             let preview = chat.messages.last?.text ?? ""
@@ -125,6 +131,8 @@ final class DemoDataSeeder {
         let emoji: String
         let lastUpdatedMillis: Int64
         let messages: [SeedMessage]
+        /// Three reasonable local-search suggestions, grounded in what this thread actually says.
+        let suggestions: [String]
     }
 
     private struct SeedDocument {
@@ -145,7 +153,13 @@ final class DemoDataSeeder {
                 SeedMessage(sender: .other, text: "Yes, deployed this morning. p99 dropped from 800ms to 210ms."),
                 SeedMessage(sender: .me, text: "Nice. Let's also cache the top-N query results for an hour."),
                 SeedMessage(sender: .other, text: "Will keep you updated, starting the final dry run now."),
-            ]
+                SeedMessage(sender: .other, text: "Dry run looks solid — cache hit rate is already at 87% after 20 minutes."),
+                SeedMessage(sender: .me, text: "That's great. What about the connection pool — are we still seeing timeouts under load?"),
+                SeedMessage(sender: .other, text: "A few, but way down. I bumped max connections from 50 to 80 and added a 2s statement timeout."),
+                SeedMessage(sender: .me, text: "Good call. Let's schedule a follow-up review after it's been in prod for a week."),
+                SeedMessage(sender: .other, text: "Sounds good, I'll put together a metrics summary by Friday."),
+            ],
+            suggestions: ["composite index deployment", "cache hit rate results", "connection pool timeout fix"]
         ),
         SeedChat(
             id: "chat_travel_planner", title: "Tokyo & Kyoto Travel Planner", emoji: "✈️",
@@ -157,7 +171,12 @@ final class DemoDataSeeder {
                 SeedMessage(sender: .other, text: "Are we doing the Shibuya Sky observation deck?"),
                 SeedMessage(sender: .me, text: "Yes, sunset tickets are booked for 5:30 PM."),
                 SeedMessage(sender: .other, text: "Can't wait! Make sure your passport is packed."),
-            ]
+                SeedMessage(sender: .other, text: "Do we have the JR train pass sorted for the Kyoto leg?"),
+                SeedMessage(sender: .me, text: "Yes, 7-day pass activates the day we land in Osaka."),
+                SeedMessage(sender: .other, text: "Perfect. Let's also pencil in Fushimi Inari early morning before the crowds."),
+                SeedMessage(sender: .me, text: "Good idea — 6:30 AM start, then breakfast near the shrine after."),
+            ],
+            suggestions: ["flight departure time", "JR train pass Kyoto", "Fushimi Inari morning plan"]
         ),
         SeedChat(
             id: "chat_cookie_recipes", title: "Baking Cookie Recipes", emoji: "🍪",
@@ -168,7 +187,13 @@ final class DemoDataSeeder {
                 SeedMessage(sender: .other, text: "How long do you chill the dough before baking?"),
                 SeedMessage(sender: .me, text: "At least 24 hours — makes a huge difference in the texture."),
                 SeedMessage(sender: .other, text: "Great, see you soon. I'll preheat the oven."),
-            ]
+                SeedMessage(sender: .other, text: "What temperature and how long in the oven?"),
+                SeedMessage(sender: .me, text: "350°F for about 11 minutes, rotate the tray halfway through."),
+                SeedMessage(sender: .other, text: "Got it. Do you use a scoop or roll them by hand?"),
+                SeedMessage(sender: .me, text: "A 2-tablespoon scoop, keeps them consistent — and don't flatten them before baking."),
+                SeedMessage(sender: .other, text: "Perfect, that's exactly what I needed. Starting the dough now."),
+            ],
+            suggestions: ["gluten-free cookie ingredients", "dough chilling time", "baking temperature and time"]
         ),
         SeedChat(
             id: "chat_hiit_fitness", title: "HIIT Fitness & Leg Day Routine", emoji: "🏋️",
@@ -178,7 +203,14 @@ final class DemoDataSeeder {
                 SeedMessage(sender: .other, text: "Squats, Bulgarian split squats, then 20 minutes on the bike."),
                 SeedMessage(sender: .me, text: "20 minutes on the bike followed by hip openers and goblet stretch. Are calves targeted separately?"),
                 SeedMessage(sender: .other, text: "Yeah, standing calf raises at the end, three sets to failure."),
-            ]
+                SeedMessage(sender: .other, text: "How's your squat depth feeling after the mobility work last week?"),
+                SeedMessage(sender: .me, text: "Way better, no more pinching at the bottom of the rep."),
+                SeedMessage(sender: .other, text: "Great — let's add front squats to the rotation then."),
+                SeedMessage(sender: .me, text: "Sounds good. What's the rep scheme for split squats?"),
+                SeedMessage(sender: .other, text: "4 sets of 10 per leg, add weight once you can do all 4 clean."),
+                SeedMessage(sender: .me, text: "Got it, I'll log today's session and send you the numbers after."),
+            ],
+            suggestions: ["leg day exercise plan", "squat depth mobility", "calf raises sets"]
         ),
         SeedChat(
             id: "chat_hiking", title: "Weekend Hiking Synchronization", emoji: "🦾",
@@ -188,7 +220,14 @@ final class DemoDataSeeder {
                 SeedMessage(sender: .other, text: "I'm in! What time were you thinking?"),
                 SeedMessage(sender: .me, text: "7 AM start to beat the heat, back down by early afternoon."),
                 SeedMessage(sender: .other, text: "Works for me — bringing extra water this time."),
-            ]
+                SeedMessage(sender: .other, text: "Which trailhead are we starting from?"),
+                SeedMessage(sender: .me, text: "Pantoll Ranger Station, then up the Steep Ravine trail."),
+                SeedMessage(sender: .other, text: "That's the one with the ladder section, right? Should be fun."),
+                SeedMessage(sender: .me, text: "Yep, and great ocean views once we hit the ridge."),
+                SeedMessage(sender: .other, text: "Should we pack lunch or eat after we're back down?"),
+                SeedMessage(sender: .me, text: "Let's pack sandwiches — there's a nice spot near the summit to stop."),
+            ],
+            suggestions: ["Mount Tamalpais hike time", "Steep Ravine trailhead", "hike lunch plan"]
         ),
     ]
 
@@ -197,67 +236,88 @@ final class DemoDataSeeder {
             id: "email_architecture_review",
             from: "eng-lead@company.com", to: "team@company.com",
             subject: "Architecture Review Alignment",
-            body: "Hi team, I wanted to send a quick reminded that our final architecture review "
-                + "for the payments migration are scheduled for Thursday at 2pm. Please make sure "
-                + "your design docs is uploaded to the shared folder by end of day Wednesday, since "
-                + "reviewers needs time to reads through them beforehand. Let me know if anyone "
-                + "have a scheduling conflict.",
+            body: "Hi team,\n\n"
+                + "I wanted to send a quick reminded that our final architecture review for the "
+                + "payments migration are scheduled for Thursday at 2pm. Each team lead need to "
+                + "confirms their slot by tomorrow morning. Please make sure your design docs is "
+                + "uploaded to the shared folder by end of day Wednesday, since reviewers needs "
+                + "time to reads through them beforehand.\n\n"
+                + "There will also be two guest reviewer from the infra team joining us, so lets "
+                + "keep the discussion focused and avoids going over time.\n\n"
+                + "Let me know if anyone have a scheduling conflict.\n\n"
+                + "Thanks,\nAlex",
             timestampMillis: now - 4 * 60 * 60_000
         ),
         EmailItem(
             id: "email_new_office",
             from: "facilities@company.com", to: "all-staff@company.com",
             subject: "Welcome to the New Office Space",
-            body: "Hello everyone, We is so thrilled to welcoming you to our newly renovated "
-                + "downtown office building! The construction team have been working around the "
-                + "clock to creating a inspiring, collaborative space. The premium barista coffee "
-                + "machines is fully stocked with fresh roasted beans, the panoramic rooftop "
-                + "terrace is finally opened, and the flexible hot-desking stations on floors 3 "
-                + "through 5 are entirely active. Please drops by the main front reception desk at "
-                + "your earliest conveniences to pick up your new RFID access badges, and join us "
-                + "in the main cafeteria at noon for an complimentary catered lunch to celebrate. "
-                + "Cheers, Facilities Department",
+            body: "Hi all,\n\n"
+                + "We is so thrilled to welcoming you to our newly renovated downtown office "
+                + "building! The construction team have been working around the clock to creating "
+                + "a inspiring, collaborative space. The premium barista coffee machines is fully "
+                + "stocked with fresh roasted beans, the panoramic rooftop terrace is finally "
+                + "opened, and the flexible hot-desking stations on floors 3 through 5 are entirely "
+                + "active.\n\n"
+                + "Parking passes will be distribute at the front desk starting next Monday, and "
+                + "each employee need to bring a valid ID to receiving one.\n\n"
+                + "Please drops by the main front reception desk at your earliest conveniences to "
+                + "pick up your new RFID access badges, and join us in the main cafeteria at noon "
+                + "for an complimentary catered lunch to celebrate.\n\n"
+                + "Cheers,\nFacilities Department",
             timestampMillis: now - 30 * 60 * 60_000
         ),
         EmailItem(
             id: "email_compliance_training",
             from: "security-ops@company.com", to: "employee@company.com",
             subject: "Action Required: Mandatory Compliance Training",
-            body: "This is a reminder that your annual security and compliance training remain "
+            body: "Hi there,\n\n"
+                + "This is a reminder that your annual security and compliance training remain "
                 + "incomplete. All employee are required to finish the training module before the "
-                + "end of this month, or your account access will be temporarily suspend. The "
-                + "training take approximately 45 minutes and cover data handling, phishing "
-                + "awareness, and incident reporting procedures. Please reach out to security-ops "
-                + "if you experiencing any technical issues accessing the training portal.",
+                + "end of this month, or your account access will be temporarily suspend.\n\n"
+                + "The training take approximately 45 minutes and cover data handling, phishing "
+                + "awareness, and incident reporting procedures. Managers should reminds their "
+                + "direct reports during the next one-on-one, since completion rate is reviewed "
+                + "by leadership each week.\n\n"
+                + "Please reach out to security-ops if you experiencing any technical issues "
+                + "accessing the training portal.\n\n"
+                + "Regards,\nSecurity Operations",
             timestampMillis: now - 5 * 24 * 60 * 60_000
         ),
         EmailItem(
             id: "email_marketing_launch",
             from: "sarah.marketing@company.com", to: "campaign-squad@company.com",
             subject: "Meeting Notes: Marketing Campaign Launch",
-            body: "Hi all, Thank you everyone for the highly productive synchronization meetings "
-                + "today. I'm distributes the minutes below. We've officially confirm that the "
-                + "global product launch date are set aggressively for next Monday. To stays on "
-                + "schedule, let's pleases ensures all final creative assets, localized copy "
-                + "translations, and media buys is entirely locked in and approved by legal before "
-                + "close of business this Friday. Dave will handling the press release syndication, "
-                + "and Rachel will queues up the social media post. We are rely on everyone to "
-                + "executing flawlessly. Thanks for your hard work, Sarah",
+            body: "Hi all,\n\n"
+                + "Thank you everyone for the highly productive synchronization meetings today. "
+                + "I'm distributes the minutes below.\n\n"
+                + "We've officially confirm that the global product launch date are set "
+                + "aggressively for next Monday. To stays on schedule, let's pleases ensures all "
+                + "final creative assets, localized copy translations, and media buys is entirely "
+                + "locked in and approved by legal before close of business this Friday.\n\n"
+                + "Please also double check that the pricing page reflect the new discount code "
+                + "before it go live.\n\n"
+                + "Dave will handling the press release syndication, and Rachel will queues up the "
+                + "social media post. We are rely on everyone to executing flawlessly.\n\n"
+                + "Thanks for your hard work,\nSarah",
             timestampMillis: now - 2 * 60 * 60_000
         ),
         EmailItem(
             id: "email_ai_trends_newsletter",
             from: "newsletter@aitrends.com", to: "subscriber@company.com",
             subject: "Your weekly newsletter: AI Trends",
-            body: "Happy Tuesday, Here is your weekly comprehensive roundup of everything "
-                + "happening in the fast-paced world of Artificial Intelligence. This week, we dive "
-                + "deep into the recent breakthroughs showcasing how on-device quantized models are "
-                + "shattering previous efficiency benchmarks, providing near real-time generative "
-                + "capabilities previously isolated solely to server farms. We also analyze the "
-                + "ethics surrounding algorithmic alignment, examine new open-source diffusion "
-                + "techniques, and interview the lead researcher behind the newest on-device "
-                + "embedding models. Hit the link below to dive into the full digest. Stay curious, "
-                + "AI Trends Editor",
+            body: "Hi,\n\n"
+                + "Here is your weekly comprehensive roundup of everything happening in the "
+                + "fast-paced world of Artificial Intelligence.\n\n"
+                + "This week, several researcher has published papers that shows promising result "
+                + "across the field, including breakthroughs showcasing how on-device quantized "
+                + "models are shattering previous efficiency benchmarks, providing near real-time "
+                + "generative capabilities previously isolated solely to server farms. We also "
+                + "analyze the ethics surrounding algorithmic alignment, examine new open-source "
+                + "diffusion techniques, and interviews the lead researcher behind the newest "
+                + "on-device embedding models.\n\n"
+                + "Hit the link below to dive into the full digest.\n\n"
+                + "Stay curious,\nAI Trends Editor",
             timestampMillis: now - 3 * 24 * 60 * 60_000
         ),
     ]
@@ -265,7 +325,11 @@ final class DemoDataSeeder {
     private static let sampleDocuments: [SeedDocument] = [
         SeedDocument(id: "doc_attention", title: "Attention Is All You Need", fileName: "attention_is_all_you_need.pdf"),
         SeedDocument(id: "doc_gpipe", title: "GPipe: Efficient Giant Model Training", fileName: "gpipe.pdf"),
-        SeedDocument(id: "doc_embeddings", title: "Efficient On-Device Text Embeddings for Personal Knowledge Bases", fileName: "embeddings_paper.pdf"),
-        SeedDocument(id: "doc_diffusion", title: "On the Interpretability of Diffusion-Based Recommendation Systems", fileName: "diffusion_recsys_paper.pdf"),
+        SeedDocument(
+            id: "doc_multi_agent",
+            title: "Multi-Agent Design: Optimizing Agents with Better Prompts and Topologies",
+            fileName: "multi_agent_design.pdf"
+        ),
+        SeedDocument(id: "doc_contract", title: "Sample Independent Contractor Agreement", fileName: "sample_contract.pdf"),
     ]
 }

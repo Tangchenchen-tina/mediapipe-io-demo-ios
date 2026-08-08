@@ -56,12 +56,38 @@ final class ArchiveRepository {
         await summarizerEngine.summarizeStreaming(text: text, mode: mode)
     }
 
+    /// Recovers from a summarizer failure — see `TextSummarizerEngine.reset`.
+    func resetSummarizerEngine() async {
+        await summarizerEngine.reset()
+    }
+
     func searchGlobal(_ query: String) async -> [SearchMatch] {
         await searchService.search(query: query, scope: .archiveDocument)
     }
 
     func indexedDocumentIds() async -> Set<String> {
         await searchService.indexedIds(scope: .archiveDocument)
+    }
+
+    /// Force-overwrites every document's cached embedding vector, same "first two pages" text
+    /// each document's initial index used — what the "Re-embed all" action calls.
+    @discardableResult
+    func reembedAllDocuments(onProgress: @escaping (Int, Int) -> Void) async -> Int {
+        let documents = allDocuments()
+        let total = documents.count
+        var done = 0
+        var succeeded = 0
+        for document in documents {
+            let text = textExtractor.extractFirstPages(document)
+            let ok = await searchService.reindex(
+                id: document.id, scope: .archiveDocument, parentId: nil,
+                title: document.title, snippet: String(text.prefix(160)), textToEmbed: text
+            )
+            if ok { succeeded += 1 }
+            done += 1
+            onProgress(done, total)
+        }
+        return succeeded
     }
 
     /// Imports a user-picked PDF — e.g. from their Mac's Desktop via the Files picker — copies it

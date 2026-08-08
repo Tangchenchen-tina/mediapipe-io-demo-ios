@@ -41,6 +41,17 @@ final class ChatRepository {
         return try await summarizerEngine.summarize(text: transcript, mode: mode)
     }
 
+    /// Streaming variant of `summarizeThread` — backs the History Summarizer's incremental fill-in.
+    func summarizeThreadStreaming(threadId: String, mode: SummaryMode) async -> AsyncThrowingStream<String, Error> {
+        let transcript = buildTranscript(messages(threadId: threadId))
+        return await summarizerEngine.summarizeStreaming(text: transcript, mode: mode)
+    }
+
+    /// Recovers from a summarizer failure — see `TextSummarizerEngine.reset`.
+    func resetSummarizerEngine() async {
+        await summarizerEngine.reset()
+    }
+
     func searchGlobal(_ query: String) async -> [SearchMatch] {
         await searchService.search(query: query, scope: .chatThread)
     }

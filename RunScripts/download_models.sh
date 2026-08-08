@@ -15,10 +15,9 @@ download() {
   fi
 }
 
-# Same three model bundles the Android sibling app uses — .litertlm/.task bundles are a
-# cross-platform format, so these are the identical files, just fetched into an iOS resource dir.
-download "https://storage.googleapis.com/mediapipe-models/text_summarizer/gemma_200m/1/summarization_quant_200m_2modes.litertlm" "$MODELS_DIR/summarization_quant_200m_2modes.litertlm"
-download "https://storage.googleapis.com/mediapipe-models/text_proofreader/gemma_200m/1/proofread_quant_200m.litertlm" "$MODELS_DIR/proofread_quant_200m.litertlm"
+# Text Summarizer and Text Proofreader (200m gemma .litertlm bundles) are pending public release —
+# no download link exists yet, so only these two publicly-available bundles are fetched here.
 download "https://storage.googleapis.com/mediapipe-models/text_embedder/embedding_gemma/int4int8/latest/embedding_gemma.task" "$MODELS_DIR/embedding_gemma.task"
+download "https://storage.googleapis.com/mediapipe-models/interactive_segmenter_v2/magic_touch/int8/1/interactive_segmentation.task" "$MODELS_DIR/interactive_segmentation.task"
 
 echo "All models ready in $MODELS_DIR"

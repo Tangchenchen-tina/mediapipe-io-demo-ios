@@ -14,18 +14,20 @@ final class AppContainer {
     let summarizerEngine: TextSummarizerEngine
     let proofreaderEngine: TextProofreaderEngine
     let embedderEngine: TextEmbedderEngine
+    let segmenterEngine: InteractiveSegmenterEngine
 
     let searchService: SemanticSearchService
 
     let chatRepository: ChatRepository
     let emailRepository: EmailRepository
     let archiveRepository: ArchiveRepository
+    let stickerRepository: StickerRepository
 
     let demoDataSeeder: DemoDataSeeder
 
     init() {
         let schema = Schema([
-            ChatThread.self, ChatMessage.self, EmailItem.self, ArchiveDocument.self, EmbeddingRecord.self,
+            ChatThread.self, ChatMessage.self, EmailItem.self, ArchiveDocument.self, EmbeddingRecord.self, Sticker.self,
         ])
         let configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
         guard let container = try? ModelContainer(for: schema, configurations: [configuration]) else {
@@ -38,9 +40,11 @@ final class AppContainer {
         let summarizer = MediaPipeTextSummarizerEngine()
         let proofreader = MediaPipeTextProofreaderEngine()
         let embedder = MediaPipeTextEmbedderEngine()
+        let segmenter = MediaPipeInteractiveSegmenterEngine()
         summarizerEngine = summarizer
         proofreaderEngine = proofreader
         embedderEngine = embedder
+        segmenterEngine = segmenter
 
         let search = SemanticSearchService(container: container, embedderEngine: embedder)
         searchService = search
@@ -50,6 +54,7 @@ final class AppContainer {
             modelContext: mainContext, searchService: search, summarizerEngine: summarizer, proofreaderEngine: proofreader
         )
         archiveRepository = ArchiveRepository(modelContext: mainContext, searchService: search, summarizerEngine: summarizer)
+        stickerRepository = StickerRepository(modelContext: mainContext, segmenterEngine: segmenter)
 
         demoDataSeeder = DemoDataSeeder(modelContext: mainContext, searchService: search)
     }

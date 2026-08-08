@@ -28,15 +28,17 @@ targets:
         buildPhase: resources
       - path: MediaPipeIODemo/Resources/SampleArchive/gpipe.pdf
         buildPhase: resources
-      - path: MediaPipeIODemo/Resources/SampleArchive/embeddings_paper.pdf
+      - path: MediaPipeIODemo/Resources/SampleArchive/multi_agent_design.pdf
         buildPhase: resources
-      - path: MediaPipeIODemo/Resources/SampleArchive/diffusion_recsys_paper.pdf
+      - path: MediaPipeIODemo/Resources/SampleArchive/sample_contract.pdf
         buildPhase: resources
       - path: MediaPipeIODemo/Resources/Models/summarization_quant_200m_2modes.litertlm
         buildPhase: resources
       - path: MediaPipeIODemo/Resources/Models/proofread_quant_200m.litertlm
         buildPhase: resources
       - path: MediaPipeIODemo/Resources/Models/embedding_gemma.task
+        buildPhase: resources
+      - path: MediaPipeIODemo/Resources/Models/interactive_segmentation.task
         buildPhase: resources
       - path: MediaPipeIODemo/Resources/Assets.xcassets
         buildPhase: resources
@@ -49,6 +51,7 @@ targets:
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
         ITSAppUsesNonExemptEncryption: false
+        NSCameraUsageDescription: Camera access is used to take a photo to turn into a sticker.
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.google.mediapipe.examples.iodemo
@@ -56,6 +59,7 @@ targets:
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         MARKETING_VERSION: "1.0.0"
         CURRENT_PROJECT_VERSION: "1"
+        DEVELOPMENT_TEAM: BY52BLBSHN
 
   MediaPipeIODemoTests:
     type: bundle.unit-test
@@ -71,10 +75,22 @@ targets:
       # the whole problem.
       - path: MediaPipeIODemo/UI/Components/WordDiff.swift
       - path: MediaPipeIODemo/Search/VectorIndex.swift
+      - path: MediaPipeIODemo/Data/EmailBodySplitter.swift
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.google.mediapipe.examples.iodemo.tests
         GENERATE_INFOPLIST_FILE: YES
+
+  MediaPipeIODemoUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - path: MediaPipeIODemoUITests
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.google.mediapipe.examples.iodemo.uitests
+        GENERATE_INFOPLIST_FILE: YES
+        TEST_TARGET_NAME: MediaPipeIODemo
 
 schemes:
   MediaPipeIODemo:
@@ -82,8 +98,10 @@ schemes:
       targets:
         MediaPipeIODemo: all
         MediaPipeIODemoTests: [test]
+        MediaPipeIODemoUITests: [test]
     test:
       targets:
         - MediaPipeIODemoTests
+        - MediaPipeIODemoUITests
     run:
       config: Debug

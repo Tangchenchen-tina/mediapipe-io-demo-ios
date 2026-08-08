@@ -14,6 +14,10 @@ final class ChatThreadViewModel {
     var searchResults: [SearchMatch]?
     var summaryLoading = false
     var summaryResult: String?
+    var summaryError: String?
+    var highlightedMessageId: String?
+    private var summaryTask: Task<Void, Never>?
+    private var highlightTask: Task<Void, Never>?
 
     init(threadId: String, repository: ChatRepository) {
         self.threadId = threadId
@@ -35,19 +39,57 @@ final class ChatThreadViewModel {
     }
 
     func summarize(mode: SummaryMode) {
-        Task {
-            summaryLoading = true
+        summaryTask?.cancel()
+        summaryLoading = true
+        summaryResult = ""
+        summaryError = nil
+        summaryTask = Task {
+            let stream = await repository.summarizeThreadStreaming(threadId: threadId, mode: mode)
             do {
-                summaryResult = try await repository.summarizeThread(threadId: threadId, mode: mode)
+                for try await chunk in stream {
+                    if Task.isCancelled { return }
+                    summaryResult = (summaryResult ?? "") + chunk
+                }
             } catch {
-                summaryResult = "Couldn't summarize this thread: \(error.localizedDescription)"
+                summaryError = error.localizedDescription
+                // See ArchiveDocumentViewModel's identical reset — a failed generation can leave
+                // the engine unusable for every call after it, so recover immediately.
+                await repository.resetSummarizerEngine()
             }
             summaryLoading = false
         }
     }
 
     func clearSummary() {
+        summaryTask?.cancel()
         summaryResult = nil
+        summaryError = nil
+        summaryLoading = false
+    }
+
+    /// Manual escape hatch next to the TL;DR/Keypoints buttons — lets you recreate the engine on
+    /// demand rather than waiting for the next error to trigger the automatic reset.
+    func resetEngine() {
+        summaryTask?.cancel()
+        summaryLoading = false
+        summaryError = nil
+        summaryResult = nil
+        Task {
+            await repository.resetSummarizerEngine()
+        }
+    }
+
+    /// Briefly rings the matched message bubble so tapping a search result doesn't just scroll
+    /// to it silently — you can actually tell which one matched.
+    func flashHighlight(_ messageId: String) {
+        highlightTask?.cancel()
+        highlightedMessageId = messageId
+        highlightTask = Task {
+            try? await Task.sleep(nanoseconds: 1_500_000_000)
+            if !Task.isCancelled {
+                highlightedMessageId = nil
+            }
+        }
     }
 
     func reembedThisChat() {

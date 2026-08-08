@@ -5,6 +5,9 @@ target 'MediaPipeIODemo' do
 
   # TextSummarizer, TextProofreader, TextEmbedder all live in this one pod.
   pod 'MediaPipeTasksText'
+  # InteractiveSegmenter (Sticker section) — real-time GPU-delegated segmentation from
+  # positive/negative touch strokes.
+  pod 'MediaPipeTasksVision'
 
   # Deliberately NOT giving MediaPipeIODemoTests its own `inherit! :search_paths` link to this
   # pod: the unit tests only exercise pure-Swift logic (WordDiff, VectorIndex) via

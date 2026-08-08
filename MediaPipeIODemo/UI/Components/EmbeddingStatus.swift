@@ -33,3 +33,35 @@ struct EmbeddingProgressView: View {
         }
     }
 }
+
+/// "N/M <items> embedded" + "Re-embed all" row, swapping to `EmbeddingProgressView` while a run
+/// is active — shared by all three sections' list screens (Chats, Archive, Email).
+struct EmbeddingStatusBar: View {
+    let itemLabel: String
+    let embeddedCount: Int
+    let totalCount: Int
+    let progress: EmbeddingProgress?
+    let onReembedAll: () -> Void
+
+    var body: some View {
+        Group {
+            if let progress {
+                EmbeddingProgressView(progress: progress)
+            } else {
+                HStack {
+                    Text("\(embeddedCount)/\(totalCount) \(itemLabel) embedded")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                    Button("Re-embed all", action: onReembedAll)
+                        .font(.caption)
+                        .disabled(totalCount == 0)
+                }
+            }
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 6)
+        .background(Color(.secondarySystemBackground).opacity(0.6))
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+    }
+}

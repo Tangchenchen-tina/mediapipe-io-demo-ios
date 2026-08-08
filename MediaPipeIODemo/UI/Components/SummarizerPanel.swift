@@ -18,8 +18,10 @@ struct SummarizerPanel: View {
     let includeRawTextMode: Bool
     let isLoading: Bool
     let result: String?
+    let error: String?
     let onGenerate: (SummaryMode) -> Void
     let onClear: (() -> Void)?
+    let onResetEngine: () -> Void
 
     @State private var mode: SummarizerDisplayMode = .tldr
 
@@ -57,7 +59,23 @@ struct SummarizerPanel: View {
 
                 Spacer()
 
-                if let onClear, result != nil || mode == .rawText {
+                // Manual escape hatch: some inputs have been observed to leave the on-device
+                // engine unusable for every call after the one that failed, not just that one —
+                // this recreates it on demand rather than waiting for the next error to trigger
+                // the automatic reset.
+                Button {
+                    onResetEngine()
+                } label: {
+                    Image(systemName: "arrow.clockwise.circle")
+                        .font(.title3)
+                        .foregroundStyle(.secondary)
+                        .frame(width: 30, height: 30)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Reset engine")
+
+                if let onClear, result != nil || error != nil || mode == .rawText {
                     Button("Clear", role: .destructive, action: onClear)
                         .buttonStyle(.borderless)
                 }
@@ -66,6 +84,9 @@ struct SummarizerPanel: View {
             Group {
                 if mode == .rawText {
                     Text(rawText.isEmpty ? "No raw text available." : rawText)
+                } else if let error {
+                    Text("Couldn't summarize: \(error)")
+                        .foregroundStyle(.red)
                 } else if let result {
                     Text(result)
                 } else if !isLoading {

@@ -1,7 +1,12 @@
 import SwiftData
 import SwiftUI
 
-private let globalChatSuggestions = ["PostgreSQL caching optimization", "Kyoto travel planner bullet train"]
+// A representative sample spanning several threads' actual topics, not just one.
+private let globalChatSuggestions = [
+    "database index and cache optimization",
+    "Kyoto travel planner bullet train",
+    "gluten-free cookie recipe",
+]
 
 struct ChatListView: View {
     @State private var viewModel: ChatListViewModel
@@ -30,6 +35,7 @@ struct ChatListView: View {
                 .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
 
                 EmbeddingStatusBar(
+                    itemLabel: "chats",
                     embeddedCount: viewModel.indexedThreadIds.count,
                     totalCount: threads.count,
                     progress: viewModel.reembedProgress,
@@ -54,35 +60,6 @@ struct ChatListView: View {
             }
             .task { await viewModel.refreshIndexedIds() }
         }
-    }
-}
-
-private struct EmbeddingStatusBar: View {
-    let embeddedCount: Int
-    let totalCount: Int
-    let progress: EmbeddingProgress?
-    let onReembedAll: () -> Void
-
-    var body: some View {
-        Group {
-            if let progress {
-                EmbeddingProgressView(progress: progress)
-            } else {
-                HStack {
-                    Text("\(embeddedCount)/\(totalCount) chats embedded")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    Spacer()
-                    Button("Re-embed all", action: onReembedAll)
-                        .font(.caption)
-                        .disabled(totalCount == 0)
-                }
-            }
-        }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 6)
-        .background(Color(.secondarySystemBackground).opacity(0.6))
-        .clipShape(RoundedRectangle(cornerRadius: 8))
     }
 }
 

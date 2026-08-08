@@ -1,18 +1,45 @@
 # MediaPipe IO Demo — iOS
 
-A SwiftUI counterpart to the Android [`mediapipe-io-demo`](https://github.com/Tangchenchen-tina/mediapipe-io-demo)
-app: the same three-section smart-notepad concept (Chats / Archive / Email), built on MediaPipe's
-on-device GenAI text tasks — **Text Summarizer**, **Text Proofreader**, and **Text Embedder**
-(EmbeddingGemma-300m) — all via the real `MediaPipeTasksText` CocoaPod, not placeholders.
+An iOS SwiftUI app demonstrating MediaPipe's on-device GenAI tasks across a smart-notepad concept
+spanning four sections — Chats, Archive, Email, and Stickers. Built on the real
+`MediaPipeTasksText` and `MediaPipeTasksVision` CocoaPods, not placeholders: **Text Embedder**
+(EmbeddingGemma-300m) powers semantic search everywhere, **Interactive Segmenter** powers the
+Stickers editor, and **Text Summarizer** / **Text Proofreader** power the Summarize and Proofread
+actions in Chats/Archive/Email.
+
+> **Text Summarizer and Text Proofreader are pending public release** — MediaPipe hasn't published
+> download links for these two model bundles yet, so `RunScripts/download_models.sh` doesn't fetch
+> them.
+
+## Demo
+
+Recorded on the iOS Simulator via a real XCUITest driving each flow end to end (see
+`MediaPipeIODemoUITests/DemoUITests.swift`) — not staged screenshots. Chats/Archive/Email clips are
+sped up to keep them short; the model calls themselves run at real speed.
+
+| Summarize a document | Proofread an email |
+| --- | --- |
+| ![Summarizing a PDF page in Archive](docs/media/archive_summarize.gif) | ![Proofreading an email with an inline diff](docs/media/email_proofread.gif) |
+
+| Embed a chat history | Generate a sticker |
+| --- | --- |
+| ![Re-embedding all chat threads](docs/media/chats_embedding.gif) | ![Drawing a stroke to cut out a sticker](docs/media/sticker_generator.gif) |
 
 ## Setup
 
 ```
-sh RunScripts/download_models.sh   # fetches the 3 model bundles (~420MB total)
+sh RunScripts/download_models.sh   # fetches the 2 publicly-available model bundles (~215MB)
 xcodegen generate                  # generates MediaPipeIODemo.xcodeproj from project.yml
 pod install                        # installs MediaPipeTasksText, produces the .xcworkspace
 open MediaPipeIODemo.xcworkspace
 ```
+
+`download_models.sh` fetches `embedding_gemma.task` (Text Embedder) and
+`interactive_segmentation.task` (Interactive Segmenter) into
+`MediaPipeIODemo/Resources/Models/`. Text Summarizer and Text Proofreader need two more files
+there — `summarization_quant_200m_2modes.litertlm` and `proofread_quant_200m.litertlm` — which
+aren't publicly downloadable yet (see the note above); Summarize/Proofread simply won't work in
+the app until those are present, everything else works without them.
 
 Then build & run the `MediaPipeIODemo` scheme. Requires Xcode 16+, iOS 17 deployment target.
 `xcodegen` and `cocoapods` are both installable via Homebrew (`brew install xcodegen cocoapods`).
@@ -31,13 +58,19 @@ order every time the project is regenerated.
   items/sec.
 - **Archive** — a grid of PDF documents. At first launch, each bundled PDF's first two pages are
   text-extracted (via PDFKit's real text layer, not OCR) and embedded, powering archive-wide
-  search. Open a document, swipe through pages, tap "Select this page" on any page, and summarize
-  just that page. Tap **Import** to pull in a PDF from anywhere the Files app can reach — including
+  search. Open a document, switch to "Select Page" mode and tap any page to select it, then
+  summarize just that page (or drag-select a specific passage in "Select" mode instead). Tap
+  **Import** to pull in a PDF from anywhere the Files app can reach — including
   a Mac's Desktop, if iCloud Drive desktop sync is on — which gets copied into the app's own
   storage and indexed the same way bundled documents are.
 - **Email** — an inbox with the same semantic search pattern. Each email supports Summarize
   (TL;DR / Keypoints / Raw Text) and Proofread — the sample emails contain real grammar mistakes
   on purpose, so Proofread has something to fix; the result renders as an inline diff.
+- **Stickers** — take a photo or pick one from the library, then draw positive (keep) and negative
+  (discard) strokes; each completed stroke re-runs `InteractiveSegmenter` and updates a live mask
+  preview. Save trims the result to the positive region's bounding box and writes a transparent-
+  background PNG to a cached gallery. Uses the GPU delegate on real devices; falls back to CPU in
+  Simulator, where MediaPipe's GPU/Metal texture-cache path isn't reliable.
 
 ## Architecture
 
@@ -45,25 +78,31 @@ order every time the project is regenerated.
 MediaPipeIODemo/
   App/            AppContainer (composition root) + the @main App entry point
   Models/         SwiftData @Model types: ChatThread, ChatMessage, EmailItem, ArchiveDocument,
-                  EmbeddingRecord
-  ML/             TextSummarizerEngine / TextProofreaderEngine / TextEmbedderEngine protocols +
-                  their real MediaPipeTasksText-backed actor implementations
+                  EmbeddingRecord, Sticker
+  ML/             TextSummarizerEngine / TextProofreaderEngine / TextEmbedderEngine /
+                  InteractiveSegmenterEngine protocols + their real MediaPipeTasksText- and
+                  MediaPipeTasksVision-backed actor implementations
   Search/         EmbeddingScope, SemanticSearchService (actor), VectorIndex (cosine similarity)
   Data/
     Local         (SwiftData handles persistence directly via the Models — no separate DAO layer)
-    Storage/      PdfTextExtractor + PdfPageRenderer (PDFKit), DocumentImporter, DocumentLocator
-    Repository/   ChatRepository, EmailRepository, ArchiveRepository — one per section, @MainActor
+    Storage/      PdfTextExtractor + PdfPageRenderer (PDFKit), DocumentImporter, DocumentLocator,
+                  StickerCutout (mask compositing/trim), StickerLocator
+    Repository/   ChatRepository, EmailRepository, ArchiveRepository, StickerRepository — one per
+                  section, @MainActor
     Seed/         DemoDataSeeder — sample chats/emails/PDFs + the "initialization stage" scan
   UI/
     Chats/        List + thread detail screens (chat bubbles with tails, timestamps, grouping)
     Archive/      Grid + document viewer screens
     Email/        List + detail screens
+    Sticker/      Gallery + editor screens (camera/photo input, stroke drawing, mask preview)
     Components/   SemanticSearchBar, SummarizerPanel, ProofreaderPanel, WordDiff, EmbeddingStatus
     Navigation/   RootTabView
   Util/           Date/time formatting
   Resources/      SampleArchive/*.pdf, Models/*.litertlm|*.task (gitignored), Assets.xcassets
 MediaPipeIODemoTests/
   WordDiffTests.swift, VectorIndexTests.swift — pure-Swift logic, no MediaPipe dependency
+MediaPipeIODemoUITests/
+  DemoUITests.swift — drives the four flows shown in the README's demo clips above
 ```
 
 ### The semantic search model
@@ -105,12 +144,19 @@ calculators aren't safe to register twice in one process). Both files are pure S
 MediaPipe dependency, so compiling them into both targets sidesteps the whole problem — see
 `project.yml`'s `MediaPipeIODemoTests` target for detail.
 
-## Notes on iOS MediaPipe support vs. the Android sibling app
+`MediaPipeIODemoUITests/DemoUITests.swift` drives the four flows in the Demo section above through
+real taps/drags via XCUITest, against the app's actual accessibility tree (not staged) — that's
+what the GIFs were recorded from. Re-run one and re-record it (fresh install first, so status
+counters/embedded badges start from zero):
 
-Android's `com.google.mediapipe:tasks-text:1.0.0` and iOS's `MediaPipeTasksText` pod (also
-`1.0.0`) both ship real `TextSummarizer`, `TextProofreader`, and `TextEmbedder` classes with
-equivalent capability — confirmed directly against the local `mediapipe-samples/examples/{text_summarizer,text_proofreader,text_embedder}/ios`
-reference apps rather than assumed from docs (an earlier GitHub source-tree check had suggested
-iOS lacked Summarizer/Proofreader entirely; the local reference apps corrected that). All three
-models are the same `.litertlm`/`.task` bundle files as the Android app uses — genuinely
-cross-platform formats, not separate iOS-specific downloads.
+```
+xcrun simctl uninstall booted com.google.mediapipe.examples.iodemo
+xcrun simctl io booted recordVideo --codec=h264 out.mov &
+xcodebuild -workspace MediaPipeIODemo.xcworkspace -scheme MediaPipeIODemo \
+  -destination 'platform=iOS Simulator,name=iPhone 16' \
+  test -only-testing:MediaPipeIODemoUITests/DemoUITests/testDemoArchiveSummarize
+kill -INT %1   # stop the recording once the test finishes
+```
+
+The Sticker flow additionally needs a photo in the Simulator's library first (`xcrun simctl
+addmedia booted <path-to-image>`) — the test picks whichever photo is newest.

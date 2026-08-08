@@ -13,6 +13,7 @@ final class ArchiveListViewModel {
     var searchResults: [SearchMatch]?
     var thumbnails: [String: UIImage] = [:]
     var importError: String?
+    var reembedProgress: EmbeddingProgress?
 
     init(repository: ArchiveRepository, seeder: DemoDataSeeder) {
         self.repository = repository
@@ -56,6 +57,22 @@ final class ArchiveListViewModel {
             } catch {
                 importError = error.localizedDescription
             }
+        }
+    }
+
+    func reembedAll() {
+        guard reembedProgress == nil else { return }
+        Task {
+            let start = Date()
+            reembedProgress = EmbeddingProgress(done: 0, total: 0, itemsPerSecond: 0)
+            await repository.reembedAllDocuments { [weak self] done, total in
+                guard let self else { return }
+                let elapsed = Date().timeIntervalSince(start)
+                let rate = elapsed > 0 ? Double(done) / elapsed : 0
+                self.reembedProgress = EmbeddingProgress(done: done, total: total, itemsPerSecond: rate)
+            }
+            reembedProgress = nil
+            await refreshIndexedIds()
         }
     }
 }
