@@ -27,6 +27,25 @@ final class DemoUITests: XCTestCase {
         Thread.sleep(forTimeInterval: 1.5)
     }
 
+    /// Demos semantic search, not the embedding step itself — assumes chats are already embedded
+    /// (run `testDemoChatsEmbedding` first, without recording, against the same installed app) so
+    /// tapping a suggestion chip returns real ranked matches instead of "No matches found."
+    func testDemoChatsSearch() throws {
+        let app = XCUIApplication()
+        app.launch()
+
+        let suggestion = app.buttons["database index and cache optimization"]
+        XCTAssertTrue(suggestion.waitForExistence(timeout: 20))
+        suggestion.tap()
+
+        let resultsHeader = app.staticTexts.matching(
+            NSPredicate(format: "label BEGINSWITH %@", "Top Semantic Matches")
+        ).firstMatch
+        XCTAssertTrue(resultsHeader.waitForExistence(timeout: 20))
+
+        Thread.sleep(forTimeInterval: 3)
+    }
+
     func testDemoArchiveSummarize() throws {
         let app = XCUIApplication()
         app.launch()

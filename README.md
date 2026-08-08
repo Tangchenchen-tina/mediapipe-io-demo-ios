@@ -14,16 +14,12 @@ actions in Chats/Archive/Email.
 ## Demo
 
 Recorded on the iOS Simulator via a real XCUITest driving each flow end to end (see
-`MediaPipeIODemoUITests/DemoUITests.swift`) — not staged screenshots. Chats/Archive/Email clips are
+`MediaPipeIODemoUITests/DemoUITests.swift`) — not staged screenshots. Archive/Email clips are
 sped up to keep them short; the model calls themselves run at real speed.
 
-| Summarize a document | Proofread an email |
-| --- | --- |
-| ![Summarizing a PDF page in Archive](docs/media/archive_summarize.gif) | ![Proofreading an email with an inline diff](docs/media/email_proofread.gif) |
-
-| Embed a chat history | Generate a sticker |
-| --- | --- |
-| ![Re-embedding all chat threads](docs/media/chats_embedding.gif) | ![Drawing a stroke to cut out a sticker](docs/media/sticker_generator.gif) |
+| Semantic search over chat history | Summarize a document | Proofread an email | Generate a sticker |
+| --- | --- | --- | --- |
+| ![Tapping a suggestion chip to semantically search chat threads, ranked by similarity](docs/media/chats_search.gif) | ![Summarizing a PDF page in Archive](docs/media/archive_summarize.gif) | ![Proofreading an email with an inline diff](docs/media/email_proofread.gif) | ![Drawing a stroke to cut out a sticker](docs/media/sticker_generator.gif) |
 
 ## Setup
 
@@ -159,4 +155,6 @@ kill -INT %1   # stop the recording once the test finishes
 ```
 
 The Sticker flow additionally needs a photo in the Simulator's library first (`xcrun simctl
-addmedia booted <path-to-image>`) — the test picks whichever photo is newest.
+addmedia booted <path-to-image>`) — the test picks whichever photo is newest. `testDemoChatsSearch`
+needs the chats already embedded — run `testDemoChatsEmbedding` once first (unrecorded, against the
+same installed app) or it'll search against nothing and show "No matches found."
